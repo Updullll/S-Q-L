@@ -1,0 +1,123 @@
+-- ( Intermediate ) --
+-- 1. Find total sales for each category
+select
+	category,
+	SUM(price) as total_sales
+from orders
+group by category;
+
+-- 2. Show customers who made more than 3 orders
+select
+    customer_id,
+    count(*) as total_orders
+from orders
+group by customer_id
+having count(*) > 3;
+
+-- 3. Find the top 5 most expensive orders
+select*
+from orders
+order by price desc
+limit 5;
+
+-- 4. Find total quantity sold per product
+select 
+	product_name,
+	sum(quantity) as total_quantity_sold
+from orders
+group by product_name;
+
+-- 5. Show customer names with their orders
+select
+	c.customer_name,
+    o.order_id,
+    o.product_name,
+    o.price
+from customers c
+join orders o
+on c.customer_id = o.customer_id;
+
+-- 6. Find customers who never made an order
+select
+	c.customer_id,
+    c.customer_name
+from customers c
+left join orders o
+on c.customer_id = o.customer_id
+where o.customer_id is null;
+
+-- 7. Find the monthly sales totals
+select
+	YEAR(order_date) as year,
+    MONTH(order_date) as month,
+    SUM(quantity * price) as total_sales
+from orders
+group by YEAR(order_date), MONTH(order_date)
+order by year, month;
+
+-- ( Advanced ) --
+-- 1. Rank orders by price
+select
+	order_id,
+    price,
+	row_number() over(order by price desc)
+from orders;
+
+-- 2. Rank customers by total spending
+select
+	customer_id,
+    SUM(quantity * price) as total_spending,
+    rank() over (order by SUM(quantity * price) desc)as ranked
+from orders
+group by customer_id;
+
+-- 3. Find the 2nd highest order price
+select
+	MAX(price) as second_highest_price
+from orders
+where price < (
+	select MAX(price)
+    from orders);
+    
+-- 4. Create a CTE to calculate customer spending
+WITH cust_spending as(
+	select
+		customer_id,
+        sum(quantity*price) as total_spending
+	from orders
+    group by customer_id
+    order by customer_id asc
+)
+select*
+from cust_spending;
+
+-- 5. Compare Current order price with previous order
+select
+	order_id,
+    price,
+    LAG(price) over(order by order_date) as prevoius_price
+from orders;
+
+-- 6. Find duplicate product purchases by the same customer
+SELECT
+	customer_id,
+    product_name,
+    COUNT(*) as times_purchased
+from orders
+group by customer_id, product_name
+having COUNT(*) > 1;
+
+-- 7. Stored Procedure: orders for a customer
+DELIMITER $$
+
+Create procedure GetCustomersOrder(In cust_id INT)
+begin
+	select*
+    from orders
+    where customer_id = cust_id;
+END $$
+DELIMITER ;
+
+CALL GetCustomersOrder(5);
+
+-- ( Interview Questions Wrapped ) --
